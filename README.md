@@ -44,7 +44,28 @@ php artisan migrate
 
 Inclui utilizadores Laravel, tabelas padrão (cache, jobs, sessões), **Sanctum** (`personal_access_tokens`), **livros** e **índices** (quando as migrações estiverem aplicadas).
 
+### Seed (obrigatório antes de subir o servidor)
+
+Para já iniciar com autores e livros padrão no SQLite/MySQL de desenvolvimento, rode:
+
+```bash
+php artisan db:seed
+```
+
+Se quiser recriar tudo do zero e já popular:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+Seeder atual de demonstração:
+
+- cerca de **10 autores**
+- cerca de **20 livros**
+
 ### Servidor de desenvolvimento
+
+Depois de migrar e popular com seed:
 
 ```bash
 php artisan serve
@@ -117,6 +138,23 @@ Cria utilizador e devolve token de acesso pessoal (Sanctum).
 
 **Resposta `204 No Content`** (sem corpo).
 
+### `GET /api/me`
+
+- **Middleware:** `auth:sanctum`
+- Devolve o utilizador autenticado no mesmo formato de `UserResource`.
+
+**Resposta `200 OK`:**
+
+```json
+{
+  "data": {
+    "id": 1,
+    "nome": "Maria",
+    "email": "maria@example.com"
+  }
+}
+```
+
 ### Arquitetura da auth (decisão técnica)
 
 - **Controller fino** (`AuthController`): só orquestra HTTP.
@@ -175,6 +213,8 @@ Atualiza título e páginas e **substitui toda a árvore de índices** pelo payl
 
 **`403 Forbidden`:** livro de outro utilizador.
 
+> No app Flutter, os botões de **editar/excluir** são exibidos apenas para livros do utilizador autenticado.
+
 ### `DELETE /api/books/{id}`
 
 Remove o livro; índices são removidos em cascata pela BD.
@@ -212,6 +252,24 @@ URL base da API: `mobile/lib/config/api_config.dart`.
 - **Web / Windows:** `http://127.0.0.1:8000/api`.
 - **Override:** `flutter run --dart-define=API_BASE_URL=https://exemplo.com/api`
 
+### Navegação
+
+O app possui menu inferior com quatro abas principais:
+
+- **Home**
+- **Livros**
+- **Autores**
+- **Perfil**
+
+A aba **Perfil** mostra o utilizador (mock avatar + nome) e a lista de livros publicados por ele, com ações de editar/excluir.
+
+### Sessão e autenticação no app
+
+- Token de autenticação persistido localmente (`shared_preferences`).
+- Sessão restaurada ao abrir o app.
+- Em token inválido/expirado (`Unauthenticated`), o app faz logout automático e redireciona para login.
+- O `userId` da sessão é usado para controlar permissões de UI (ex.: mostrar botão de editar/excluir apenas para o dono do livro).
+
 ### Correr a app
 
 Com o emulador **já aberto** ou outro dispositivo listado em `flutter devices`:
@@ -237,6 +295,6 @@ flutter run -d chrome
 | Rotas API | Ficheiro `routes/api.php`, prefixo `/api` |
 | Princípios | SRP: controllers finos; serviços por domínio (auth, livros); contratos + implementações (DIP) |
 | BD | Migrações Laravel; MySQL em produção/dev real; SQLite aceite para testes CI |
-| Flutter | `ApiConfig` por plataforma; token guardado no app (a implementar nas próximas tarefas) |
+| Flutter | `ApiConfig` por plataforma; sessão com token + `userId` persistidos no app; navegação por abas (Home/Livros/Autores/Perfil) |
 
 ---
