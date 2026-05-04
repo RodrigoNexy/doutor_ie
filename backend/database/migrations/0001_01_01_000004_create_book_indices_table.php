@@ -6,15 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('book_indices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('book_id')->constrained()->cascadeOnDelete();
-            /** Raiz: null. Hierarquia recursiva conforme o teste. */
             $table->foreignId('parent_id')->nullable()->constrained('book_indices')->cascadeOnDelete();
             $table->string('title');
             $table->unsignedInteger('page');
@@ -25,9 +21,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('book_indices');
