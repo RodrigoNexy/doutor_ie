@@ -17,6 +17,11 @@ class BookPolicy
         return true;
     }
 
+    public function similar(User $user, Book $book): bool
+    {
+        return $this->view($user, $book);
+    }
+
     public function create(User $user): bool
     {
         return true;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Book;
 
+use App\Models\Book;
 use App\Rules\ValidNestedBookIndices;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -9,7 +10,7 @@ class StoreBookRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user() !== null && $this->user()->can('create', Book::class);
     }
 
     public function rules(): array

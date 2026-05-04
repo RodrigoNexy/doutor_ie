@@ -157,6 +157,16 @@ Cria livro para o utilizador autenticado (publicador).
 
 Detalhe do livro com índices em árvore completa.
 
+### `GET /api/books/{id}/similar`
+
+Lista **outros livros** com título semanticamente parecido ao livro `{id}` (comparação sobre `title_normalized`: sem acento, minúsculas).
+
+- **Autorização:** mesma regra que ver detalhe (`BookPolicy::similar`).
+- **Resposta `200 OK`:** `data` como array; cada item inclui os campos habituais do livro (como em `BookResource`) mais **`pontuacao_similaridade`** (0 a 1, maior = mais parecido).
+- **Algoritmo:** distância de **Levenshtein** em PHP sobre títulos já normalizados. Para escalar com muitos registos, aplica-se primeiro um **pré-filtro SQL** (igualdade exacta do normalizado, prefixo dos primeiros caracteres, ou comprimento semelhante) com limite de candidatos, e só depois o score.
+
+O campo **`title_normalized`** do livro é preenchido automaticamente nos observers ao criar/editar (já descrito na secção de arquitetura).
+
 ### `PUT /api/books/{id}`
 
 Atualiza título e páginas e **substitui toda a árvore de índices** pelo payload (remove nós antigos que não existam no novo JSON e recria a estrutura).
@@ -178,7 +188,10 @@ Remove o livro; índices são removidos em cascata pela BD.
 - **`BookIndexNestedSerializerInterface`**: leitura em árvore + poda quando há `titulo_do_indice`.
 - **`TitleNormalizerInterface`**: normalização única (título de livro e de índice).
 - **`BookObserver` / `BookIndexObserver`**: preenchem `title_normalized` ao guardar.
-- **`BookPolicy`**: qualquer utilizador autenticado pode **ver** e **listar**; só o dono **atualiza** ou **apaga**.
+- **`BookTitleSimilarityScorerInterface`** + **`LevenshteinBookTitleSimilarityScorer`**: cálculo de similaridade (substituível, p.ex. trigram no futuro).
+- **`SimilarBooksFinderInterface`** + **`SimilarBooksFinder`**: escolhe candidatos na BD e aplica o scorer.
+- **`BookSimilarityController`**: única ação HTTP para `GET .../similar`.
+- **`BookPolicy`**: qualquer utilizador autenticado pode **ver** e **listar**; só o dono **atualiza** ou **apaga**; **similar** alinhado a **view**.
 - **Validação** aninhada: regra `ValidNestedBookIndices` + Form Requests em `App\Http\Requests\Book`.
 - **Coluna `book_indices.title_normalized`**: migração `2026_05_04_160000_add_title_normalized_to_book_indices_table` para filtros eficientes.
 

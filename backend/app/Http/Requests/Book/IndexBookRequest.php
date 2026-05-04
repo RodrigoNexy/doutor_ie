@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests\Book;
 
+use App\Models\Book;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexBookRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user() !== null && $this->user()->can('viewAny', Book::class);
     }
 
     public function rules(): array

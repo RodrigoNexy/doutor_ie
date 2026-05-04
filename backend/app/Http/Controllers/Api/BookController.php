@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Contracts\Books\BookManagementServiceInterface;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Book\DestroyBookRequest;
 use App\Http\Requests\Book\IndexBookRequest;
+use App\Http\Requests\Book\ShowBookRequest;
 use App\Http\Requests\Book\StoreBookRequest;
 use App\Http\Requests\Book\UpdateBookRequest;
 use App\Http\Resources\BookResource;
@@ -21,8 +23,6 @@ final class BookController extends Controller
 
     public function index(IndexBookRequest $request): AnonymousResourceCollection
     {
-        $this->authorize('viewAny', Book::class);
-
         $validated = $request->validated();
         $books = $this->bookManagement->listBooks(
             isset($validated['titulo']) ? (string) $validated['titulo'] : null,
@@ -34,8 +34,6 @@ final class BookController extends Controller
 
     public function store(StoreBookRequest $request): JsonResponse
     {
-        $this->authorize('create', Book::class);
-
         $book = $this->bookManagement->createBook($request->user(), $request->validated());
 
         return BookResource::make($book)
@@ -43,10 +41,8 @@ final class BookController extends Controller
             ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function show(Book $book): BookResource
+    public function show(ShowBookRequest $request, Book $book): BookResource
     {
-        $this->authorize('view', $book);
-
         $book->loadMissing(['user', 'indices']);
 
         return BookResource::make($book);
@@ -59,10 +55,8 @@ final class BookController extends Controller
         return BookResource::make($updated);
     }
 
-    public function destroy(Book $book): JsonResponse
+    public function destroy(DestroyBookRequest $_request, Book $book): JsonResponse
     {
-        $this->authorize('delete', $book);
-
         $this->bookManagement->deleteBook($book);
 
         return response()->json(null, Response::HTTP_NO_CONTENT);

@@ -6,6 +6,8 @@ use App\Contracts\Auth\AuthServiceInterface;
 use App\Contracts\Books\BookIndexNestedSerializerInterface;
 use App\Contracts\Books\BookIndexPayloadWriterInterface;
 use App\Contracts\Books\BookManagementServiceInterface;
+use App\Contracts\Books\BookTitleSimilarityScorerInterface;
+use App\Contracts\Books\SimilarBooksFinderInterface;
 use App\Contracts\Books\TitleNormalizerInterface;
 use App\Models\Book;
 use App\Models\BookIndex;
@@ -17,6 +19,8 @@ use App\Services\Books\AsciiTitleNormalizer;
 use App\Services\Books\BookIndexNestedSerializer;
 use App\Services\Books\BookIndexPayloadWriter;
 use App\Services\Books\BookManagementService;
+use App\Services\Books\LevenshteinBookTitleSimilarityScorer;
+use App\Services\Books\SimilarBooksFinder;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(BookIndexPayloadWriterInterface::class, BookIndexPayloadWriter::class);
         $this->app->singleton(BookIndexNestedSerializerInterface::class, BookIndexNestedSerializer::class);
         $this->app->singleton(BookManagementServiceInterface::class, BookManagementService::class);
+        $this->app->singleton(BookTitleSimilarityScorerInterface::class, LevenshteinBookTitleSimilarityScorer::class);
+        $this->app->singleton(SimilarBooksFinderInterface::class, SimilarBooksFinder::class);
     }
 
     public function boot(): void
