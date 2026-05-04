@@ -48,6 +48,12 @@ class _BooksListPageState extends ConsumerState<BooksListPage> {
     final width = MediaQuery.sizeOf(context).width;
     final crossAxisCount = width > 900 ? 5 : (width > 700 ? 4 : 3);
 
+    ref.listen(authSessionProvider, (previous, next) {
+      if (!next.isAuthenticated) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Todos os livros'),

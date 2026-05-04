@@ -50,6 +50,12 @@ class _HomePageState extends ConsumerState<HomePage> {
           IconButton(
             onPressed: () async {
               await ref.read(authSessionProvider.notifier).signOut();
+              if (!context.mounted) {
+                return;
+              }
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/login', (route) => false);
             },
             icon: const Icon(Icons.logout),
           ),

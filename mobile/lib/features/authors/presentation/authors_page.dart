@@ -33,6 +33,13 @@ class _AuthorsPageState extends ConsumerState<AuthorsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeBookListProvider);
+
+    ref.listen(authSessionProvider, (previous, next) {
+      if (!next.isAuthenticated) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    });
+
     final books = _filterBooksByBookAndIndex(
       state.books,
       _bookNameController.text.trim(),

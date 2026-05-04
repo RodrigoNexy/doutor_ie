@@ -88,6 +88,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget build(BuildContext context) {
     final session = ref.watch(authSessionProvider);
     final state = ref.watch(homeBookListProvider);
+
+    ref.listen(authSessionProvider, (previous, next) {
+      if (!next.isAuthenticated) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    });
+
     final myBooks = state.books
         .where((book) => book.usuarioPublicador?.id == session.currentUserId)
         .toList(growable: false);
@@ -106,6 +113,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           IconButton(
             onPressed: () async {
               await ref.read(authSessionProvider.notifier).signOut();
+              if (!context.mounted) {
+                return;
+              }
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/login', (route) => false);
             },
             icon: const Icon(Icons.logout),
           ),
