@@ -161,6 +161,59 @@ php artisan test --filter=AuthTest
 
 ---
 
+## 🧱 Arquitetura da API (Laravel)
+
+Esta API foi estruturada para manter regras de negócio fora dos controllers, com baixo acoplamento e foco em testabilidade.
+
+### Organização de pastas (backend)
+
+```text
+backend/app
+├── Contracts/
+│   ├── Auth/
+│   └── Books/
+├── Http/
+│   ├── Controllers/Api/
+│   ├── Requests/Auth/
+│   ├── Requests/Book/
+│   └── Resources/
+├── Models/
+├── Observers/
+├── Policies/
+└── Services/
+    ├── Auth/
+    └── Books/
+```
+
+### Responsabilidade de cada camada
+
+- `Http/Controllers/Api`: camada HTTP fina, apenas recebe pedido, delega e devolve resposta.
+- `Http/Requests`: validação e autorização por endpoint (entrada consistente e previsível).
+- `Http/Resources`: formato de saída da API (padroniza contrato JSON).
+- `Services/*`: casos de uso e regras de negócio (criar, listar, atualizar, similaridade, auth).
+- `Contracts/*`: abstrações para DIP (facilita testes e troca de implementação).
+- `Policies`: regras de autorização por recurso (ex.: só o dono edita/apaga livro).
+- `Observers`: automações de domínio (normalização de título ao persistir).
+- `Models`: persistência e relacionamentos Eloquent.
+
+### Fluxo de uma operação (ex.: atualizar livro)
+
+1. Request chega em `BookController@update`.
+2. `UpdateBookRequest` valida payload e autorização.
+3. Controller chama `BookManagementServiceInterface`.
+4. Service aplica regra de negócio e coordena escrita da árvore de índices.
+5. `BookResource` serializa a resposta no padrão da API.
+
+### Benefícios práticos dessa arquitetura
+
+- regras críticas centralizadas em serviços (evita duplicação);
+- facilidade para testes unitários e de integração;
+- controllers pequenos e de fácil manutenção;
+- autorização consistente via policy/request;
+- evolutividade para trocar algoritmos (ex.: similaridade) sem quebrar endpoints.
+
+---
+
 ## 🔐 API — Autenticação (Sanctum)
 
 Todas as rotas respondem em JSON. As rotas **protegidas** exigem:
@@ -356,6 +409,64 @@ Remove o livro e os seus índices (cascata na BD).
 
 ## 📱 Frontend (Flutter)
 
+## 🧩 Arquitetura do Mobile (Flutter)
+
+O app segue uma divisão por **features** e por **camadas de infraestrutura**, mantendo responsabilidades claras (SRP) e dependências via providers.
+
+### Organização de pastas (mobile/lib)
+
+```text
+mobile/lib
+├── core/
+│   ├── providers.dart
+│   ├── theme/
+│   └── widgets/
+├── features/
+│   ├── auth/
+│   │   ├── application/
+│   │   └── presentation/
+│   ├── books/
+│   │   ├── application/
+│   │   └── presentation/
+│   ├── authors/
+│   │   ├── application/
+│   │   └── presentation/
+│   ├── home/presentation/
+│   └── profile/presentation/
+├── models/
+├── services/
+│   ├── auth/
+│   ├── books/
+│   ├── network/
+│   └── storage/
+└── main.dart
+```
+
+### Responsabilidade de cada área
+
+- `core/`: configuração transversal (tema, providers globais, widgets compartilhados).
+- `features/*/presentation`: UI (telas, widgets, navegação, interação do utilizador).
+- `features/*/application`: estado e orquestração de ações da feature.
+- `services/*`: integração externa (HTTP, storage local, fábrica do cliente Dio).
+- `models/`: contratos de dados da app (serialização/desserialização).
+
+### Fluxo de dados no app
+
+1. UI dispara ação (`login`, `filtrar`, `criar livro`, etc.).
+2. Notifier da feature processa estado (loading/sucesso/erro).
+3. Notifier delega para `RemoteDataSource` (camada de serviço).
+4. Resposta é convertida em `models`.
+5. Estado é atualizado e a UI reage via Riverpod.
+
+### Sessão e autorização na UI
+
+- token + `userId` persistidos em `shared_preferences`;
+- sessão restaurada ao abrir app (`AuthSessionNotifier`);
+- em `Unauthenticated`, logout automático e retorno ao login;
+- ações sensíveis (editar/excluir) aparecem apenas para o dono do livro.
+
+---
+
 ### Instalação
 
 ```bash
@@ -414,5 +525,68 @@ O app possui menu inferior com quatro abas:
 | Base de Dados | Migrações Laravel; MySQL em produção; SQLite para testes CI |
 | Similaridade | Levenshtein sobre `title_normalized` com pré-filtro SQL |
 | Flutter | `ApiConfig` por plataforma; sessão com token + `userId`; navegação por abas |
+
+---
+
+## 🎯 Decisões técnicas (com racional)
+
+### Backend
+
+- **Controllers finos + Services**
+  - **Por quê:** separa transporte HTTP da regra de negócio.
+  - **Ganho:** manutenção e testes mais simples.
+  - **Trade-off:** mais ficheiros/classes para navegar.
+
+- **Contracts + Implementações (DIP)**
+  - **Por quê:** depender de abstrações facilita evolução.
+  - **Ganho:** troca de implementação com impacto mínimo.
+  - **Trade-off:** exige disciplina de organização.
+
+- **Form Requests para validação/autorização**
+  - **Por quê:** evitar validação espalhada em controller/service.
+  - **Ganho:** entradas consistentes e regras explícitas por endpoint.
+  - **Trade-off:** curva inicial para mapear requests.
+
+- **Policies para regras de acesso**
+  - **Por quê:** centralizar autorização no domínio do recurso.
+  - **Ganho:** previsibilidade e segurança (dono edita/apaga).
+  - **Trade-off:** precisa manter alinhado com comportamento da UI.
+
+- **Observers para `title_normalized`**
+  - **Por quê:** garantir normalização sempre que persistir dados.
+  - **Ganho:** filtros e similaridade consistentes.
+  - **Trade-off:** regra fica implícita para quem não conhece observers.
+
+- **Levenshtein + pré-filtro SQL**
+  - **Por quê:** simplicidade de implementação com custo controlado.
+  - **Ganho:** boa relação precisão/esforço para o teste técnico.
+  - **Trade-off:** não é semântico profundo como embeddings.
+
+### Mobile
+
+- **Riverpod (`StateNotifier`)**
+  - **Por quê:** gestão de estado previsível e testável.
+  - **Ganho:** UI reativa com baixo acoplamento.
+  - **Trade-off:** requer disciplina no desenho dos providers.
+
+- **Dio + fábrica de cliente + interceptor de token**
+  - **Por quê:** centralizar configuração de rede/autorização.
+  - **Ganho:** menos duplicação e comportamento uniforme.
+  - **Trade-off:** depuração exige conhecer pipeline de interceptores.
+
+- **Persistência local da sessão (`shared_preferences`)**
+  - **Por quê:** melhorar UX ao reabrir app.
+  - **Ganho:** sessão contínua e recuperação de contexto.
+  - **Trade-off:** cuidado adicional com invalidação de token.
+
+- **Navegação por abas com menu inferior**
+  - **Por quê:** acesso direto às áreas principais do produto.
+  - **Ganho:** fluxo mais rápido entre Home, Livros, Autores e Perfil.
+  - **Trade-off:** exige sincronização de estado entre abas.
+
+- **Perfil com ações de gestão dos próprios livros**
+  - **Por quê:** concentrar operações de ownership num único lugar.
+  - **Ganho:** UX clara para editar/excluir o que é do utilizador.
+  - **Trade-off:** precisa manter consistência com as policies do backend.
 
 ---
